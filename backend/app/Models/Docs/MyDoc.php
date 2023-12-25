@@ -26,4 +26,6 @@ class MyDoc extends Model
     {
         return $this->hasOne(User::class, 'id', 'user_id');
     }
+
+    const PUBLIC_PATH_FILES = "api/docs/";
 }

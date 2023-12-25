@@ -262,7 +262,7 @@
                     }
                 ]
             },
-            "post": {
+            "put": {
                 "tags": [
                     "Meus Documentos"
                 ],
@@ -284,7 +284,7 @@
                     "description": "Informações do documento",
                     "required": true,
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
                                 "properties": {
                                     "type_id": {
@@ -292,13 +292,8 @@
                                         "example": 1
                                     },
                                     "file": {
-                                        "description": "Arquivo do documento",
-                                        "type": "string",
-                                        "format": "binary"
-                                    },
-                                    "_method": {
-                                        "type": "string",
-                                        "example": "PUT"
+                                        "description": "Arquivo do documento (em formato Base64)",
+                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -321,7 +316,7 @@
                                             "type": "boolean",
                                             "example": true
                                         },
-                                        "doc": {
+                                        "myDoc": {
                                             "type": "object",
                                             "example": []
                                         }

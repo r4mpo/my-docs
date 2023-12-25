@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Docs\Create\MyDocsCreateRequest as Create;
 use App\Http\Requests\Docs\Edit\MyDocsEditRequest as Edit;
 use App\Models\Docs\MyDoc;
+use App\Services\DocsService;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -101,21 +102,21 @@ class MyDocsController extends Controller
      *     security={{"bearerAuth": {}}}
      * )
      */
-    public function store(Create $request)
+    public function store(Create $request, DocsService $service)
     {
         try {
 
             $data = $request->only(['type_id', 'user_id']);
 
+            if ($request->hasFile('file')) {
+                dd("chegou arquivo");
+            }
+
             if (!$request->hasFile('file') || !$request->file('file')->isValid()) {
                 return response()->json(['message' => 'Arquivo de documento não foi enviado.'], 400);
             }
 
-            $file = $request->file;
-            $extension = $file->extension();
-            $fileName = md5($file->getClientOriginalName() . strtotime("now") . "." . $extension);
-            $request->file->move(public_path('api/docs'), $fileName);
-            $data['file'] = $fileName;
+            $data['file'] = $service->saveFile($request, MyDoc::PUBLIC_PATH_FILES);
 
             $myDoc = MyDoc::create($data);
 
@@ -203,7 +204,7 @@ class MyDocsController extends Controller
     }
 
     /**
-     * @OA\Post(
+     * @OA\Put(
      *     path="/api/docs/my-docs/{id}",
      *     operationId="mydocs_update",
      *     tags={"Meus Documentos"},
@@ -220,11 +221,10 @@ class MyDocsController extends Controller
      *         required=true,
      *         description="Informações do documento",
      *         @OA\MediaType(
-     *             mediaType="multipart/form-data",
+     *             mediaType="application/json",
      *             @OA\Schema(
      *                 @OA\Property(property="type_id", type="integer", example=1),
-     *                 @OA\Property(property="file", type="string", format="binary", description="Arquivo do documento"),
-     *                 @OA\Property(property="_method", type="string", example="PUT"),
+     *                 @OA\Property(property="file", type="string", description="Arquivo do documento (em formato Base64)"),
      *             )
      *         )
      *     ),
@@ -234,7 +234,7 @@ class MyDocsController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="O documento foi atualizado com sucesso."),
      *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="doc", type="object", example={}),
+     *             @OA\Property(property="myDoc", type="object", example={}),
      *         )
      *     ),
      *     @OA\Response(
@@ -257,7 +257,7 @@ class MyDocsController extends Controller
      *     security={{"bearerAuth": {}}}
      * )
      */
-    public function update(Edit $request, string $id)
+    public function update(Edit $request, DocsService $service, string $id)
     {
         try {
             $myDoc = MyDoc::findOrFail($id);
@@ -267,20 +267,8 @@ class MyDocsController extends Controller
                 return response()->json(['message' => 'Você não está autorizado para atualizar este documento.'], 401);
             }
 
-            if ($request->hasFile('file') && $request->file('file')->isValid()) {
-                $file = $request->file;
-                $extension = $file->extension();
-                $fileName = md5($file->getClientOriginalName() . strtotime("now") . "." . $extension);
-                $request->file->move(public_path('api/docs'), $fileName);
-                $data['file'] = $fileName;
-
-                // Capturando o arquivo antigo relacionado ao documento
-                $previousFile = public_path("api/docs/$myDoc->file");
-
-                // Excluindo arquivo antigo do documento
-                if (file_exists($previousFile)) {
-                    unlink($previousFile);
-                }
+            if (!empty($request->file)) {
+                $data['file'] = $service->updateFile($myDoc, $request->file, MyDoc::PUBLIC_PATH_FILES);
             }
 
             $myDoc->update($data);
@@ -345,7 +333,7 @@ class MyDocsController extends Controller
      *     security={{"bearerAuth": {}}}
      * )
      */
-    public function destroy(string $id)
+    public function destroy(DocsService $service, string $id)
     {
         try {
 
@@ -356,13 +344,8 @@ class MyDocsController extends Controller
             }
 
             if ($myDoc->delete()) {
-                // Capturando o arquivo antigo relacionado ao documento
-                $previousFile = public_path("api/docs/$myDoc->file");
-
-                // Excluindo arquivo antigo do documento
-                if (file_exists($previousFile)) {
-                    unlink($previousFile);
-                }
+                // Utilizando service para remover o arquivo do documento
+                $service->removeFile($myDoc->file, MyDoc::PUBLIC_PATH_FILES);
             }
 
             return response()->json([

@@ -16,7 +16,7 @@ class MyDocsEditRequest extends FormRequest
     {
         return [
             'type_id' => ['exists:types,id'],
-            'file' => ['file'],
+            'file' => ['string'],
         ];
     }
 
@@ -24,7 +24,17 @@ class MyDocsEditRequest extends FormRequest
     {
         return [
             'exists' => 'O campo :attribute não existe em nossos registros internos.',
-            'file' => 'O campo :attribute precisa conter um arquivo válido.'
+            'string' => 'O campo :attribute precisa conter uma string válida.'
         ];
+    }
+
+    public function prepareForValidation()
+    {
+        $input = $this->all();
+
+        // Salvando o user logado no campo
+        $input['user_id'] = Auth::user()->id;
+
+        $this->replace($input);
     }
 }
