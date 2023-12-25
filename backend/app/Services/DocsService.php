@@ -16,11 +16,11 @@ class DocsService implements FilesInterface
         return $fileName;
     }
 
-    public function updateFile($myDoc, $fileBase64, $path)
+    public function updateFile($data, $fileBase64, $path)
     {
         // Caso tenha um arquivo existente no documento...
-        if (!empty($myDoc->file)) {
-            $this->removeFile($myDoc->file, $path);
+        if (!empty($data->file)) {
+            $this->removeFile($data->file, $path);
         }
 
         // Separar a string Base64 e obter os dados binários
